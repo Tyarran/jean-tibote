@@ -13,5 +13,8 @@
   "license": "MIT",
   "devDependencies": {
     "bs-platform": "*"
+  },
+  "dependencies": {
+    "bs-axios": "^0.0.43"
   }
 }
