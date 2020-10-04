@@ -1,13 +1,14 @@
 open Js.Promise
 
-type t = {apiKey: string}
+type t = {apiKey: string, baseUrl: string}
 type apiEndpoint = Groups | Leaves
 
-let make = apiKey => {
-  {apiKey: apiKey}
+let make = (apiKey, baseUrl) => {
+  {
+    apiKey: apiKey,
+    baseUrl: baseUrl,
+  }
 }
-
-let baseUrl = "https://meilleursagents.ilucca.net/api/"
 
 module Team = {
   module Member = {
@@ -85,8 +86,8 @@ let addAuthToken = (api, url) => {
 
 let getUrl = (api, endpoint) => {
   let url = switch endpoint {
-  | Groups => baseUrl ++ "groups/"
-  | Leaves => baseUrl ++ "leaves/?fields=date,leaveScope,owner"
+  | Groups => api.baseUrl ++ "groups/"
+  | Leaves => api.baseUrl ++ "leaves/?fields=date,leaveScope,owner"
   }
   addAuthToken(api, url)
 }
@@ -106,7 +107,7 @@ let getTeam = (api, groupPromise) => {
   })
 }
 
-let getLeaves = (api, date) => {
+let getLeaves = api => {
   let map = Belt.HashMap.Int.make(~hintSize=10)
   Axios.get(getUrl(api, Leaves)) |> then_(response => {
     response["data"]["data"] |> Array.iter(leave => {
@@ -135,9 +136,9 @@ let getTeamLeaves = (api, date, teamPromise) => {
     (),
   )
 
-  Js.Promise.all2((teamPromise, getLeaves(api, date))) |> then_(response => {
+  Js.Promise.all2((teamPromise, getLeaves(api))) |> then_(response => {
     let (team, leaves) = response
-    Belt.List.filter(leaves |> Belt.List.fromArray, (leave: Leave.t) =>
+    Belt.List.keep(leaves |> Belt.List.fromArray, (leave: Leave.t) =>
       Team.isMember(team, leave.member.id) && leave.date == filterDate
     )
     |> Belt.List.toArray

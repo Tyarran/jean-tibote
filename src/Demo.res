@@ -3,8 +3,9 @@ type envType
 @bs.get_index external getEnv: (envType, string) => string = ""
 
 let apiKey = getEnv(env, "ILUCCA_API_KEY")
+let baseUrl = getEnv(env, "ILUCCA_API_BASE_URL")
 
-let iLuccaAPI = Ilucca.make(apiKey)
+let iLuccaAPI = Ilucca.make(apiKey, baseUrl)
 
 Ilucca.getGroup(iLuccaAPI)
 |> Ilucca.getTeam(iLuccaAPI)
