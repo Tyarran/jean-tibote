@@ -3,8 +3,8 @@
   "name": "rescript-project-template",
   "version": "0.0.1",
   "sources": {
-    "dir" : "src",
-    "subdirs" : true
+    "dir": "src",
+    "subdirs": true
   },
   "package-specs": {
     "module": "commonjs",
@@ -12,9 +12,12 @@
   },
   "suffix": ".bs.js",
   "bs-dependencies": [
-    "bs-axios"
+    "bs-express",
+    "bs-axios",
+    "bs-fetch",
+    "@glennsl/bs-json"
   ],
   "warnings": {
-    "error" : "+101"
+    "error": "+101"
   }
 }

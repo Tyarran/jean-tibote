@@ -4,3 +4,7 @@ services:
     build:
       context: .
     env_file: .env
+    volumes:
+      - .:/code
+    ports:
+      - 5000:5000
