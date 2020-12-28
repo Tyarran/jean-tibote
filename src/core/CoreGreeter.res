@@ -45,7 +45,7 @@ let rec findExpression = (greetingExpressions, text) => {
 
 let isGreeting = (botId, threadId, text) => {
   switch (botId, threadId) {
-  | (None, None) => findExpression(greetingExpressions, text)
+  | (None, None) => findExpression(greetingExpressions, text |> Js.String.toLowerCase)
   | _ => false
   }
 }

@@ -1,8 +1,5 @@
 type v2
-type t = {
-  apiKey: string,
-  api: v2,
-}
+type t = {apiKey: string}
 
 type article = {
   title: string,
@@ -11,17 +8,17 @@ type article = {
 }
 let placeholder = "https://via.placeholder.com/150"
 
-module NewsAPIJS = {
-  type newsapi
-  @bs.new @bs.module external newsAPI: string => newsapi = "newsapi"
-  @bs.get external getV2: newsapi => v2 = "v2"
-  @bs.send
-  external topHeadlines: (v2, Js.Dict.t<string>) => Js.Promise.t<'a> = "topHeadlines"
+let make = apiKey => {
+  apiKey: apiKey,
 }
 
-let make = apiKey => {
-  let api = NewsAPIJS.newsAPI(apiKey)
-  {apiKey: apiKey, api: NewsAPIJS.getV2(api)}
+let decodeArticle = json => {
+  open Json.Decode
+  {
+    title: field("title", string, json),
+    url: field("url", string, json),
+    imageUrl: field("urlToImage", string, json),
+  }
 }
 
 let decodeStringWithDefault = (jsonValue, default) =>
@@ -30,11 +27,16 @@ let decodeStringWithDefault = (jsonValue, default) =>
   | None => default
   }
 
-let topHeadlines = (api, params) => {
-  Js.Dict.set(params, "apiKey", api.apiKey)
-  NewsAPIJS.topHeadlines(api.api, params) |> Js.Promise.then_(response => Array.map(item => {
-      title: decodeStringWithDefault(item["title"], ""),
-      url: decodeStringWithDefault(item["url"], ""),
-      imageUrl: decodeStringWithDefault(item["urlToImage"], placeholder),
-    }, response["articles"]) |> Js.Promise.resolve)
+let topHeadlinesUrl = "http://newsapi.org/v2/top-headlines"
+
+let topHeadlines = (api, ~language="fr", ()) => {
+  open Js.Promise
+  let apiKey = api.apiKey
+  let url = topHeadlinesUrl ++ "?apiKey=" ++ apiKey ++ "&language=" ++ language
+  Axios.get(url)
+  |> then_(response => {
+    let articles = Array.map(item => decodeArticle(item), response["data"]["articles"])
+    Ok(articles) |> resolve
+  })
+  |> catch(error => Error(error) |> resolve)
 }

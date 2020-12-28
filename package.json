@@ -22,7 +22,6 @@
     "bs-fetch": "^0.6.2",
     "isomorphic-fetch": "^3.0.0",
     "mustache": "^4.1.0",
-    "newsapi": "^2.4.1",
     "slack": "^11.0.2"
   }
 }

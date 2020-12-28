@@ -14,3 +14,6 @@ let slackVerificationToken = getEnv(env, "SLACK_VERIFICATION_TOKEN")
 
 // App
 let appPort = getEnv(env, "APP_PORT") |> int_of_string
+
+//NewsAPI
+let newsAPIToken = getEnv(env, "NEWSAPI_TOKEN")

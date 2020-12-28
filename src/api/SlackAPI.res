@@ -10,6 +10,7 @@ type event = {
   channel: string,
   botId: option<string>,
   threadTs: option<string>,
+  _type: string,
 }
 
 type eventPayload = {
@@ -36,8 +37,9 @@ let eventDecoder = json => {
     user: field("user", string, json),
     team: field("team", string, json),
     channel: field("channel", string, json),
-    botId: optional(field("bot_id", Json.Decode.string), json),
-    threadTs: optional(field("thread_ts", Json.Decode.string), json),
+    botId: optional(field("bot_id", string), json),
+    threadTs: optional(field("thread_ts", string), json),
+    _type: field("type", string, json),
   }
 }
 
@@ -73,16 +75,145 @@ let getPayload = json => {
     : Invalid
 }
 
-let processEventRequest = payload => {
-  let answer = Core.Greeter.greet(payload.event.user)
-  let args: Slack.messageArgs = {
-    channel: payload.event.channel,
-    thread_ts: payload.event.ts,
-    text: answer,
-    token: Slack.token,
+let getIntent = payload => {
+  let testFuncs = list{
+    (
+      Intent.News,
+      payload => payload.event._type === "app_mention" && Core.News.isNews(payload.event.text),
+    ),
+    (
+      Intent.Greeting,
+      payload =>
+        Core.Greeter.isGreeting(payload.event.botId, payload.event.threadTs, payload.event.text) &&
+        Core.News.isNews(payload.event.text) === false,
+    ),
   }
+  let isValid = item => {
+    let (_, testFunc) = item
+    testFunc(payload) === true
+  }
+  let intent = switch List.find(isValid, testFuncs) {
+  | exception Not_found => Unknown
+  | (intent, _) => intent
+  }
+  Js.log(`Received ${intent |> Intent.toString} intent`)
+  intent
+}
+
+let sendError = payload => {
+  let client = Slack.make(Slack.token)
+  let args = {
+    let args = list{("channel", payload.event.channel), ("token", Slack.token)}
+    switch payload.event.ts {
+    | Some(ts) => list{("thread_ts", ts), ...args}
+    | None => args
+    }
+  }
+  let blocks = [
+    Slack.Block.Image("https://media.giphy.com/media/oe33xf3B50fsc/giphy.gif", "explosion"),
+    Slack.Block.Section(Intent.error(None)),
+  ]
+  let _ = Slack.sendMessage(
+    client,
+    List.concat(list{
+      args,
+      list{
+        ("text", "Une erreur est survenue"),
+        (
+          "blocks",
+          Array.map(block => block |> Slack.Block.build, blocks)
+          |> Js.Json.array
+          |> Js.Json.stringify,
+        ),
+      },
+    }) |> Js.Dict.fromList,
+  )
+}
+
+let sendGreeting = payload => {
+  let answer = Core.Greeter.greet(payload.event.user)
+  let args =
+    [
+      ("channel", payload.event.channel),
+      ("text", answer),
+      ("token", Slack.token),
+    ] |> Js.Dict.fromArray
+
   let client = Slack.make(Slack.token)
   Slack.sendMessage(client, args)
+}
+
+let sendNews = payload => {
+  open NewsAPI
+  open Js.Promise
+  let api = NewsAPI.make(Settings.newsAPIToken)
+  let client = Slack.make(Slack.token)
+  let args = {
+    let args = list{("channel", payload.event.channel), ("token", Slack.token)}
+    switch payload.event.ts {
+    | Some(ts) => list{("thread_ts", ts), ...args}
+    | None => args
+    }
+  }
+
+  topHeadlines(api, ()) |> then_(result => {
+    switch result {
+    | Ok(articles) => {
+        let blocks = Array.map((article: article) => {
+          let title = "<" ++ article.url ++ "|" ++ article.title ++ ">"
+          Slack.Block.SectionWithAccessory(
+            title,
+            article.imageUrl,
+            article.title,
+          ) |> Slack.Block.build
+        }, articles) |> Js.Json.array
+        Slack.sendMessage(
+          client,
+          List.concat(list{
+            args,
+            list{
+              (
+                "text",
+                `Oh non ! Je n'ai pas réussi. Je crois que j'ai besoin qu'on me ressere les boulons ...`,
+              ),
+              ("blocks", blocks |> Js.Json.stringify),
+            },
+          }) |> Js.Dict.fromList,
+        )
+      }
+    | Error(_) => sendError(payload) |> resolve
+    }
+  })
+}
+
+let sendAffirmative = (payload, intent) => {
+  let text = Intent.affirmative(intent)
+  let client = Slack.make(Slack.token)
+  let args =
+    [
+      ("channel", payload.event.channel),
+      ("text", text),
+      ("token", Slack.token),
+    ] |> Js.Dict.fromArray
+  switch payload.event.ts {
+  | Some(ts) => Js.Dict.set(args, "thread_ts", ts)
+  | None => ()
+  }
+  Slack.sendMessage(client, args)
+}
+
+let processEventPayload = payload => {
+  let intent = getIntent(payload)
+  switch intent {
+  | Intent.Unknown => ()
+  | Intent.News => {
+      let _ = sendAffirmative(payload, intent) |> Js.Promise.then_(_ => {
+        Js.Promise.resolve(sendNews(payload))
+      })
+    }
+  | Intent.Greeting =>
+    let _ = sendGreeting(payload)
+  }
 }
 
 let middleware = Middleware.from((_, req, res) => {
@@ -96,20 +227,7 @@ let middleware = Middleware.from((_, req, res) => {
         Response.sendString(challengeValue, res)
       }
     | Event(payload) =>
-      Js.log(payload)
-      switch Core.Greeter.isGreeting(
-        payload.event.botId,
-        payload.event.threadTs,
-        payload.event.text |> Js.String.toLowerCase,
-      ) {
-      | true =>
-        Js.log("Greeting request received")
-        let _ =
-          processEventRequest(payload) |> Js.Promise.then_(_ =>
-            Js.log("Greeting sent") |> Js.Promise.resolve
-          )
-      | false => Js.log("not a greeting request")
-      }
+      processEventPayload(payload)
       Response.sendStatus(Response.StatusCode.Ok, res)
     }
   | None => Response.sendString("Invalid payload", res)

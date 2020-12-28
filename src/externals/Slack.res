@@ -1,12 +1,5 @@
 type t
 
-type messageArgs = {
-  channel: string,
-  thread_ts: option<string>,
-  text: string,
-  token: string,
-}
-
 let token = Settings.slackToken
 
 module SlackJS = {
@@ -28,6 +21,7 @@ module Block = {
     | SectionWithAccessory(string, string, string)
     | Context(string, string, string)
     | Header(string)
+    | Image(string, string)
 
   let buildText = text =>
     [("type", Js.Json.string("mrkdwn")), ("text", Js.Json.string(text))]
@@ -92,6 +86,7 @@ module Block = {
       buildSessionWithAccessory(text, image_url, alt_text)
     | Context(text, image_url, alt_text) => buildContext(text, image_url, alt_text)
     | Header(text) => buildHeader(text)
+    | Image(image_url, alt_text) => buildImage(image_url, alt_text)
     }
     attributes
   }
