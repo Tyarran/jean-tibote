@@ -3,5 +3,5 @@
 /lib/
 .bsb.lock
 .merlin
-src/*.bs.js
+*.bs.js
 .env

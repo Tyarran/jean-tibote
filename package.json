@@ -1,5 +1,5 @@
 {
-  "name": "jean-tibot",
+  "name": "jean-tibote",
   "version": "0.0.1",
   "scripts": {
     "build": "bsb -make-world",

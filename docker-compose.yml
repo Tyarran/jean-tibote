@@ -8,3 +8,4 @@ services:
       - .:/code
     ports:
       - 5000:5000
+    command: ["nodemon", "/code/src/Main.bs.js"]

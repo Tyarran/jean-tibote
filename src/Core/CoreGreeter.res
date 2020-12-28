@@ -1,4 +1,12 @@
-let greetingExpressions = list{"bonjour", "salut", "hi", "hello", "hey"}
+let greetingExpressions = list{
+  "bonjour",
+  "salut",
+  "salutation",
+  "salutations",
+  "hi",
+  "hello",
+  "hey",
+}
 
 let responses = [
   "Hi <@{{user}}> !",
@@ -19,8 +27,9 @@ let rec findExpression = (greetingExpressions, text) => {
   let rest = List.tl(greetingExpressions)
 
   let tests = list{
-    (word, text) => Js.String.startsWith(word, text),
-    (word, text) => Js.String.endsWith(word, text),
+    (word, text) => word == text,
+    (word, text) => Js.String.startsWith(word ++ " ", text),
+    (word, text) => Js.String.endsWith(" " ++ word, text),
     (word, text) => Js.String.includes(" " ++ word ++ " ", text),
   }
 
@@ -34,23 +43,11 @@ let rec findExpression = (greetingExpressions, text) => {
   }
 }
 
-let isGreeting = (botId, threadTs, text) => {
-  switch (botId, threadTs) {
+let isGreeting = (botId, threadId, text) => {
+  switch (botId, threadId) {
   | (None, None) => findExpression(greetingExpressions, text)
   | _ => false
   }
 }
 
-let greet = (payload: Events.eventPayload) => {
-  let params = {
-    "thread_ts": payload.event.ts,
-    "token": Settings.slackToken,
-    "channel": payload.event.channel,
-    "text": Template.render(chooseResponse(responses), {"user": payload.event.user}),
-  }
-  let slackAPI = Slack.make(Settings.slackToken)
-  let chat = Slack.SlackJS.Chat.chat(slackAPI)
-  Slack.SlackJS.Chat.postMessage(chat, params) |> Js.Promise.then_(_ =>
-    Js.log("Post greeting message : success") |> Js.Promise.resolve
-  )
-}
+let greet = user => Template.render(chooseResponse(responses), {"user": user})

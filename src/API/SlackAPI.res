@@ -1,8 +1,10 @@
+open Express
+
 type challenge = string
 
 type event = {
   text: string,
-  ts: string,
+  ts: option<string>,
   user: string,
   team: string,
   channel: string,
@@ -30,7 +32,7 @@ let eventDecoder = json => {
   open Json.Decode
   {
     text: field("text", string, json),
-    ts: field("ts", string, json),
+    ts: field("ts", optional(string), json),
     user: field("user", string, json),
     team: field("team", string, json),
     channel: field("channel", string, json),
@@ -69,4 +71,51 @@ let getPayload = json => {
       | exception DecodeError(_) => Event(eventPayloadDecoder(json))
       }
     : Invalid
+}
+
+let processEventRequest = payload => {
+  let answer = Core.Greeter.greet(payload.event.user)
+  let args: Slack.messageArgs = {
+    channel: payload.event.channel,
+    thread_ts: payload.event.ts,
+    text: answer,
+    token: Slack.token,
+  }
+  let client = Slack.make(Slack.token)
+  Slack.sendMessage(client, args)
+}
+
+let middleware = Middleware.from((_, req, res) => {
+  let body = Request.bodyJSON(req)
+  switch body {
+  | Some(json) =>
+    switch getPayload(json) {
+    | Invalid => Response.sendStatus(Response.StatusCode.Forbidden, res)
+    | Challenge(challengeValue) => {
+        Js.log("Challenge accepted !")
+        Response.sendString(challengeValue, res)
+      }
+    | Event(payload) =>
+      Js.log(payload)
+      switch Core.Greeter.isGreeting(
+        payload.event.botId,
+        payload.event.threadTs,
+        payload.event.text |> Js.String.toLowerCase,
+      ) {
+      | true =>
+        Js.log("Greeting request received")
+        let _ =
+          processEventRequest(payload) |> Js.Promise.then_(_ =>
+            Js.log("Greeting sent") |> Js.Promise.resolve
+          )
+      | false => Js.log("not a greeting request")
+      }
+      Response.sendStatus(Response.StatusCode.Ok, res)
+    }
+  | None => Response.sendString("Invalid payload", res)
+  }
+})
+
+let init = prefix => {
+  API.registerMiddleware(~path=prefix ++ "/", Request.Post, middleware)
 }

@@ -1,18 +1,21 @@
 type t
 
-/* module Chat = { */
-/* @bs.val external postMessage: 'a => Js.Promise.t<'b> = "slack.chat.postMessage" */
-/* } */
+type messageArgs = {
+  channel: string,
+  thread_ts: option<string>,
+  text: string,
+  token: string,
+}
+
+let token = Settings.slackToken
 
 module SlackJS = {
   @bs.module @bs.new external _new: string => t = "slack"
 
   module Chat = {
     type c
-    /* @bs.send external chat: (t, 'a) => Js.Promise.t<'b> = "chat.postMessage" */
     @bs.get external chat: t => c = "chat"
     @bs.send external postMessage: (c, 'a) => Js.Promise.t<'b> = "postMessage"
-    /* @bs.val external postMessage: 'a => Js.Promise.t<'b> = "slack.chat.postMessage" */
   }
 }
 
@@ -92,4 +95,9 @@ module Block = {
     }
     attributes
   }
+}
+
+let sendMessage = (client, args) => {
+  let chat = SlackJS.Chat.chat(client)
+  SlackJS.Chat.postMessage(chat, args)
 }
