@@ -1,4 +1,4 @@
-type intent = Greeting | News | Unknown
+type intent = Greeting | News | Random | Unknown
 
 let responses = [
   `À vos ordres, captain !`,
@@ -17,23 +17,15 @@ let errorResponses = [
   `Je ne me souviens plus trop comment je dois m'y prendre...`,
 ]
 
-let chooseResponse = responses => {
-  let choiceNumber = Js.Math.random_int(0, Array.length(responses) - 1)
-  responses[choiceNumber]
-}
-
 let toString = intent => {
   switch intent {
   | Greeting => "greeting"
   | News => "news"
+  | Random => "random"
   | Unknown => "unknown"
   }
 }
 
-let affirmative = _ => {
-  chooseResponse(responses)
-}
+let affirmative = _ => Utils.random(responses)
 
-let error = _ => {
-  chooseResponse(errorResponses)
-}
+let error = _ => Utils.random(errorResponses)

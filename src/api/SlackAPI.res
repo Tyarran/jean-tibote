@@ -2,6 +2,9 @@ open Express
 
 type challenge = string
 
+type authorization = {userId: string}
+type authorizations = array<authorization>
+
 type event = {
   text: string,
   ts: option<string>,
@@ -22,12 +25,20 @@ type eventPayload = {
   isExtSharedChannel: bool,
   eventContext: string,
   event: event,
+  authorizations: authorizations,
 }
 
 type requests =
   | Challenge(string)
   | Event(eventPayload)
   | Invalid
+
+let authorizationsDecoder = json => {
+  open Json.Decode
+  {
+    userId: field("user_id", string, json),
+  }
+}
 
 let eventDecoder = json => {
   open Json.Decode
@@ -54,6 +65,7 @@ let eventPayloadDecoder = json => {
     isExtSharedChannel: field("is_ext_shared_channel", bool, json),
     eventContext: field("event_context", string, json),
     event: field("event", eventDecoder, json),
+    authorizations: field("authorizations", array(authorizationsDecoder), json),
   }
 }
 
@@ -80,6 +92,10 @@ let getIntent = payload => {
     (
       Intent.News,
       payload => payload.event._type === "app_mention" && Core.News.isNews(payload.event.text),
+    ),
+    (
+      Intent.Random,
+      payload => payload.event._type === "app_mention" && Core.Random.isRandom(payload.event.text),
     ),
     (
       Intent.Greeting,
@@ -113,7 +129,7 @@ let sendError = payload => {
     Slack.Block.Image("https://media.giphy.com/media/oe33xf3B50fsc/giphy.gif", "explosion"),
     Slack.Block.Section(Intent.error(None)),
   ]
-  let _ = Slack.sendMessage(
+  Slack.sendMessage(
     client,
     List.concat(list{
       args,
@@ -172,10 +188,7 @@ let sendNews = payload => {
           List.concat(list{
             args,
             list{
-              (
-                "text",
-                `Oh non ! Je n'ai pas réussi. Je crois que j'ai besoin qu'on me ressere les boulons ...`,
-              ),
+              ("text", `les actualités sont arrivées`),
               ("blocks", blocks |> Js.Json.stringify),
             },
           }) |> Js.Dict.fromList,
@@ -202,6 +215,36 @@ let sendAffirmative = (payload, intent) => {
   Slack.sendMessage(client, args)
 }
 
+let sendRandom = payload => {
+  open Js.Promise
+  let botUserId = payload.authorizations[0].userId
+  let client = Slack.make(Slack.token)
+  let _ = Slack.getMembers(client, payload.event.channel) |> then_(result => {
+    switch result {
+    | Ok(resultPayload) => {
+        let members =
+          List.filter(
+            userId => userId !== botUserId,
+            resultPayload["members"] |> Belt.List.fromArray,
+          ) |> Belt.List.toArray
+        let chosen = CoreRandom.chooseMember(members)
+        let args =
+          [
+            ("channel", payload.event.channel),
+            ("text", Core.Random.response(chosen)),
+            ("token", Slack.token),
+          ] |> Js.Dict.fromArray
+        switch payload.event.ts {
+        | Some(ts) => Js.Dict.set(args, "thread_ts", ts)
+        | None => ()
+        }
+        Slack.sendMessage(client, args)
+      }
+    | Error(_) => sendError(payload)
+    } |> resolve
+  })
+}
+
 let processEventPayload = payload => {
   let intent = getIntent(payload)
   switch intent {
@@ -213,6 +256,10 @@ let processEventPayload = payload => {
     }
   | Intent.Greeting =>
     let _ = sendGreeting(payload)
+  | Intent.Random =>
+    let _ = sendAffirmative(payload, intent) |> Js.Promise.then_(_ => {
+      Js.Promise.resolve(sendRandom(payload))
+    })
   }
 }
 

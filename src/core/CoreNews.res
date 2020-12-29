@@ -1,8 +1,5 @@
-let newsRegex = %re("/news |news$|news\W+/i")
+let newsExpressions = list{`actualité`, `actualités`, "news"}
 
-let isNews = text => {
-  switch Js.Re.exec_(newsRegex, text) {
-  | None => false
-  | Some(_) => true
-  }
-}
+let newsRegexes = List.map(expression => Utils.buildRegex(expression), newsExpressions)
+
+let isNews = text => Utils.testRegexes(text, newsRegexes)

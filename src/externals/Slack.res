@@ -10,6 +10,12 @@ module SlackJS = {
     @bs.get external chat: t => c = "chat"
     @bs.send external postMessage: (c, 'a) => Js.Promise.t<'b> = "postMessage"
   }
+
+  module Conversations = {
+    type c
+    @bs.get external conversations: t => c = "conversations"
+    @bs.send external members: (c, 'a) => Js.Promise.t<'b> = "members"
+  }
 }
 
 let make = token => SlackJS._new(token)
@@ -95,4 +101,12 @@ module Block = {
 let sendMessage = (client, args) => {
   let chat = SlackJS.Chat.chat(client)
   SlackJS.Chat.postMessage(chat, args)
+}
+
+let getMembers = (client, channel) => {
+  let conversations = SlackJS.Conversations.conversations(client)
+  let params = list{("token", token), ("channel", channel)} |> Js.Dict.fromList
+  SlackJS.Conversations.members(conversations, params)
+  |> Js.Promise.then_(response => Ok(response) |> Js.Promise.resolve)
+  |> Js.Promise.catch(error => Error(error) |> Js.Promise.resolve)
 }
