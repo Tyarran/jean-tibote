@@ -19,11 +19,7 @@ let responses = [
   `Coucou <@{{user}}> !`,
 ]
 
-let isGreeting = (botId, threadId, text) => {
-  switch (botId, threadId) {
-  | (None, None) => Utils.testRegexes(text, greetingRegexes)
-  | _ => false
-  }
-}
+let isGreeting = (message: Message.message) =>
+  message._type === Message.Type.Message && Utils.testRegexes(message.text, greetingRegexes)
 
 let greet = user => Template.render(Utils.random(responses), {"user": user})

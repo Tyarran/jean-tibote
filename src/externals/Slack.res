@@ -96,6 +96,10 @@ module Block = {
     }
     attributes
   }
+
+  let stringify = blocks => {
+    Array.map(block => block |> build, blocks) |> Js.Json.array |> Js.Json.stringify
+  }
 }
 
 let sendMessage = (client, args) => {

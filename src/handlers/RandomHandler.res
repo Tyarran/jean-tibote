@@ -15,10 +15,14 @@ let responses = [
   `C'est ton jour de chance <@{{user}}> !`,
 ]
 
-let isRandom = text => Utils.testRegexes(text, randomRegexes)
+let isRandom = (message: Message.message) =>
+  message._type === Message.Type.Mention && Utils.testRegexes(message.text, randomRegexes)
 
 let chooseMember = members => Utils.random(members)
 
-let response = user => {
-  Template.render(Utils.random(responses), {"user": user})
+let handle = (message: Message.message, members) => {
+  Js.log("Handle random message")
+  Js.log(message)
+  let member = chooseMember(members)
+  Template.render(Utils.random(responses), {"user": member})
 }
