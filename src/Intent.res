@@ -1,4 +1,4 @@
-type intent = Greeting | News | Random | Version | Unknown | NothingToDo
+type intent = Greeting | News | Random | Version | Help | Unknown | NothingToDo
 
 let affirmativeResponses = [
   `À vos ordres, captain !`,
@@ -24,7 +24,18 @@ let toString = intent => {
   | Random => "random"
   | Version => "version"
   | Unknown => "unknown"
+  | Help => "help"
   | NothingToDo => "nothing"
+  }
+}
+
+let toLongDescription = intent => {
+  switch intent {
+  | Greeting => `répondre à un salut amical`
+  | News => `envoyer les actualités`
+  | Random => `choisir quelqu'un au hasard dans ce canal`
+  | Version => `donner le numéro de ma version`
+  | _ => ""
   }
 }
 
@@ -37,6 +48,7 @@ let resolve = (message: Message.message) => {
     (News, NewsHandler.isNews),
     (Random, RandomHandler.isRandom),
     (Version, VersionHandler.isVersion),
+    (Help, HelpHandler.isHelp),
     (Greeting, GreetHandler.isGreeting),
     (Unknown, UnknownHandler.isUnknown),
   }

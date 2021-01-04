@@ -18,3 +18,7 @@ let testRegexes = (text, regexes) => {
   | _ => true
   }
 }
+
+let stringJoin = (separator, stringList) => {
+  Belt.List.reduce(stringList, "", (a, b) => a ++ separator ++ b)
+}
