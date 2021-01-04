@@ -13,13 +13,13 @@ let greetingRegexes = List.map(expression => Utils.buildRegex(expression), greet
 let responses = [
   `Hi <@{{user}}> !`,
   `Oh <@{{user}}> ! Ravi de te revoir !`,
-  `Oh <@{{user}}> ! Ravi de te revoir ! J'espère que tout va pour le mieux ?`,
+  `Oh <@{{user}}> ! Excellente journée`,
   `Bonjour <@{{user}}> !`,
-  `Salut <@{{user}}> ! Je te souhaite une agréable journée ?`,
-  `Coucou <@{{user}}> !`,
+  `Salut <@{{user}}> ! je te souhaite une agréable journée !`,
+  `coucou <@{{user}}> !`,
 ]
 
 let isGreeting = (message: Message.message) =>
-  message._type === Message.Type.Message && Utils.testRegexes(message.text, greetingRegexes)
+  message._type === Message.Type.Mention && Utils.testRegexes(message.text, greetingRegexes)
 
 let greet = user => Template.render(Utils.random(responses), {"user": user})

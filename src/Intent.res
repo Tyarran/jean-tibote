@@ -1,4 +1,4 @@
-type intent = Greeting | News | Random | Unknown
+type intent = Greeting | News | Random | Unknown | NothingToDo
 
 let affirmativeResponses = [
   `À vos ordres, captain !`,
@@ -23,6 +23,7 @@ let toString = intent => {
   | News => "news"
   | Random => "random"
   | Unknown => "unknown"
+  | NothingToDo => "nothing"
   }
 }
 
@@ -35,12 +36,13 @@ let resolve = (message: Message.message) => {
     (News, NewsHandler.isNews),
     (Random, RandomHandler.isRandom),
     (Greeting, GreetHandler.isGreeting),
+    (Unknown, UnknownHandler.isUnknown),
   }
   let intent = switch List.find(item => {
     let (_, testFunc) = item
     testFunc(message) === true
   }, testFuncs) {
-  | exception Not_found => Unknown
+  | exception Not_found => NothingToDo
   | (intent, _) => intent
   }
   Js.log(`Received ${intent |> toString} intent`)

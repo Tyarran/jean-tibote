@@ -37,8 +37,30 @@ let sendError = (message: Message.message) => {
 
 let sendGreeting = (message: Message.message) => {
   let answer = GreetHandler.greet(message.userId)
-  let args =
-    [("channel", message.channel), ("text", answer), ("token", Slack.token)] |> Js.Dict.fromArray
+  let args = switch message.threadId {
+  | Some(ts) => list{
+      ("channel", message.channel),
+      ("text", answer),
+      ("token", Slack.token),
+      ("thread_ts", ts),
+    }
+  | None => list{("channel", message.channel), ("text", answer), ("token", Slack.token)}
+  } |> Js.Dict.fromList
+
+  Slack.sendMessage(client, args)
+}
+
+let sendUnknown = (message: Message.message) => {
+  let answer = UnknownHandler.handle(message)
+  let args = switch message.threadId {
+  | Some(ts) => list{
+      ("channel", message.channel),
+      ("text", answer),
+      ("token", Slack.token),
+      ("thread_ts", ts),
+    }
+  | None => list{("channel", message.channel), ("text", answer), ("token", Slack.token)}
+  } |> Js.Dict.fromList
 
   Slack.sendMessage(client, args)
 }
@@ -118,7 +140,9 @@ let processEventPayload = payload => {
   let message = getMessage(payload)
   let intent = Intent.resolve(message)
   switch intent {
-  | Intent.Unknown => ()
+  | Intent.Unknown =>
+    let _ = sendUnknown(message)
+  | Intent.NothingToDo => ()
   | Intent.News => {
       let _ = sendAffirmative(message, intent) |> Js.Promise.then_(_ => {
         Js.Promise.resolve(sendNews(message))
