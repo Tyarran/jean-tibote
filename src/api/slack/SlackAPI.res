@@ -65,6 +65,21 @@ let sendUnknown = (message: Message.message) => {
   Slack.sendMessage(client, args)
 }
 
+let sendVersion = (message: Message.message) => {
+  let answer = VersionHandler.handle(message)
+  let args = switch message.threadId {
+  | Some(ts) => list{
+      ("channel", message.channel),
+      ("text", answer),
+      ("token", Slack.token),
+      ("thread_ts", ts),
+    }
+  | None => list{("channel", message.channel), ("text", answer), ("token", Slack.token)}
+  } |> Js.Dict.fromList
+
+  Slack.sendMessage(client, args)
+}
+
 let sendNews = (message: Message.message) => {
   open Js.Promise
 
@@ -146,6 +161,11 @@ let processEventPayload = payload => {
   | Intent.News => {
       let _ = sendAffirmative(message, intent) |> Js.Promise.then_(_ => {
         Js.Promise.resolve(sendNews(message))
+      })
+    }
+  | Intent.Version => {
+      let _ = sendAffirmative(message, intent) |> Js.Promise.then_(_ => {
+        Js.Promise.resolve(sendVersion(message))
       })
     }
   | Intent.Greeting =>

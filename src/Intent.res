@@ -1,4 +1,4 @@
-type intent = Greeting | News | Random | Unknown | NothingToDo
+type intent = Greeting | News | Random | Version | Unknown | NothingToDo
 
 let affirmativeResponses = [
   `À vos ordres, captain !`,
@@ -22,6 +22,7 @@ let toString = intent => {
   | Greeting => "greeting"
   | News => "news"
   | Random => "random"
+  | Version => "version"
   | Unknown => "unknown"
   | NothingToDo => "nothing"
   }
@@ -35,6 +36,7 @@ let resolve = (message: Message.message) => {
   let testFuncs = list{
     (News, NewsHandler.isNews),
     (Random, RandomHandler.isRandom),
+    (Version, VersionHandler.isVersion),
     (Greeting, GreetHandler.isGreeting),
     (Unknown, UnknownHandler.isUnknown),
   }
