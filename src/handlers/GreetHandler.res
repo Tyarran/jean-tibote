@@ -8,7 +8,7 @@ let greetingExpressions = list{
   "hey",
 }
 
-let greetingRegexes = List.map(expression => Utils.buildRegex(expression), greetingExpressions)
+let regexes = List.map(expression => Utils.buildRegex(expression), greetingExpressions)
 
 let responses = [
   `Hi <@{{user}}> !`,
@@ -20,6 +20,9 @@ let responses = [
 ]
 
 let isGreeting = (message: Message.message) =>
-  message._type === Message.Type.Mention && Utils.testRegexes(message.text, greetingRegexes)
+  message.isBot === false &&
+  (message._type === Message.Type.Mention ||
+    (message._type === Message.Type.Message && message.channelType == Message.ChannelType.Im)) &&
+  Utils.testRegexes(message.text, regexes)
 
 let greet = user => Template.render(Utils.random(responses), {"user": user})

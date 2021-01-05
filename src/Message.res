@@ -10,6 +10,16 @@ module Type = {
   }
 }
 
+module ChannelType = {
+  type t = Im | Channel
+  let fromString = channelTypeString => {
+    switch channelTypeString {
+    | "im" => Im
+    | _ => Channel
+    }
+  }
+}
+
 type message = {
   text: string,
   id: string,
@@ -19,4 +29,6 @@ type message = {
   threadId: option<string>,
   botId: string,
   _type: Type.t,
+  channelType: ChannelType.t,
+  isBot: bool,
 }

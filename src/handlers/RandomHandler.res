@@ -16,7 +16,10 @@ let responses = [
 ]
 
 let isRandom = (message: Message.message) =>
-  message._type === Message.Type.Mention && Utils.testRegexes(message.text, randomRegexes)
+  message.isBot === false &&
+  message._type === Message.Type.Mention &&
+  /* (message._type === Message.Type.Message && message.channelType == Message.ChannelType.Im)) && */
+  Utils.testRegexes(message.text, randomRegexes)
 
 let chooseMember = members => Utils.random(members)
 

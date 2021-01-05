@@ -1,4 +1,4 @@
-type intent = Greeting | News | Random | Version | Help | Unknown | NothingToDo
+type intent = Greeting | News | Random | Version | Help | Ping | Unknown | NothingToDo
 
 let affirmativeResponses = [
   `À vos ordres, captain !`,
@@ -26,6 +26,7 @@ let toString = intent => {
   | Unknown => "unknown"
   | Help => "help"
   | NothingToDo => "nothing"
+  | Ping => "ping"
   }
 }
 
@@ -35,6 +36,7 @@ let toLongDescription = intent => {
   | News => `envoyer les actualités`
   | Random => `choisir quelqu'un au hasard dans ce canal`
   | Version => `donner le numéro de ma version`
+  | Ping => `faire des vérifications sur mon état`
   | _ => ""
   }
 }
@@ -48,6 +50,7 @@ let resolve = (message: Message.message) => {
     (News, NewsHandler.isNews),
     (Random, RandomHandler.isRandom),
     (Version, VersionHandler.isVersion),
+    (Ping, PingHandler.isPing),
     (Help, HelpHandler.isHelp),
     (Greeting, GreetHandler.isGreeting),
     (Unknown, UnknownHandler.isUnknown),

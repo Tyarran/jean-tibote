@@ -12,7 +12,13 @@ let getMessage = (payload: Decoder.eventPayload) => {
     threadId: payload.event.ts,
     botId: payload.authorizations[0].userId,
     _type: payload.event._type |> Message.Type.fromString,
+    channelType: payload.event.channelType |> Message.ChannelType.fromString,
+    isBot: switch payload.event.botProfile {
+    | Some(_) => true
+    | None => false
+    },
   }
+  Js.log(message)
   message
 }
 
@@ -82,6 +88,21 @@ let sendVersion = (message: Message.message) => {
 
 let sendHelp = (message: Message.message) => {
   let answer = HelpHandler.handle(message)
+  let args = switch message.threadId {
+  | Some(ts) => list{
+      ("channel", message.channel),
+      ("text", answer),
+      ("token", Slack.token),
+      ("thread_ts", ts),
+    }
+  | None => list{("channel", message.channel), ("text", answer), ("token", Slack.token)}
+  } |> Js.Dict.fromList
+
+  Slack.sendMessage(client, args)
+}
+
+let sendPing = (message: Message.message) => {
+  let answer = PingHandler.handle(message)
   let args = switch message.threadId {
   | Some(ts) => list{
       ("channel", message.channel),
@@ -193,6 +214,8 @@ let processEventPayload = payload => {
     let _ = sendAffirmative(message, intent) |> Js.Promise.then_(_ => {
       Js.Promise.resolve(sendHelp(message))
     })
+  | Intent.Ping =>
+    let _ = Js.Promise.resolve(sendPing(message))
   }
 }
 

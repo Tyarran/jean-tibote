@@ -3,6 +3,11 @@ type challenge = string
 type authorization = {userId: string}
 type authorizations = array<authorization>
 
+type botProfile = {
+  id: string,
+  name: string,
+}
+
 type event = {
   text: string,
   ts: option<string>,
@@ -12,6 +17,8 @@ type event = {
   botId: option<string>,
   threadTs: option<string>,
   _type: string,
+  channelType: string,
+  botProfile: option<botProfile>,
 }
 
 type eventPayload = {
@@ -38,6 +45,14 @@ let authorizationsDecoder = json => {
   }
 }
 
+let botProfileDecoder = json => {
+  open Json.Decode
+  {
+    id: field("id", string, json),
+    name: field("name", string, json),
+  }
+}
+
 let eventDecoder = json => {
   open Json.Decode
   {
@@ -49,6 +64,8 @@ let eventDecoder = json => {
     botId: optional(field("bot_id", string), json),
     threadTs: optional(field("thread_ts", string), json),
     _type: field("type", string, json),
+    channelType: field("channel_type", string, json),
+    botProfile: optional(field("bot_profile", botProfileDecoder), json),
   }
 }
 
