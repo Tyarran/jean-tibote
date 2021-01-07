@@ -17,7 +17,7 @@ type event = {
   botId: option<string>,
   threadTs: option<string>,
   _type: string,
-  channelType: string,
+  channelType: option<string>,
   botProfile: option<botProfile>,
 }
 
@@ -37,6 +37,7 @@ type requests =
   | Challenge(string)
   | Event(eventPayload)
   | Invalid
+  | Unreadable(Js.Json.t)
 
 let authorizationsDecoder = json => {
   open Json.Decode
@@ -64,7 +65,7 @@ let eventDecoder = json => {
     botId: optional(field("bot_id", string), json),
     threadTs: optional(field("thread_ts", string), json),
     _type: field("type", string, json),
-    channelType: field("channel_type", string, json),
+    channelType: optional(field("channel_type", string), json),
     botProfile: optional(field("bot_profile", botProfileDecoder), json),
   }
 }
@@ -97,7 +98,11 @@ let getPayload = json => {
   isValidPayload(json)
     ? switch field("challenge", string, json) {
       | value => Challenge(value)
-      | exception DecodeError(_) => Event(eventPayloadDecoder(json))
+      | exception DecodeError(_) =>
+        switch eventPayloadDecoder(json) {
+        | value => Event(value)
+        | exception DecodeError(_) => Unreadable(json)
+        }
       }
     : Invalid
 }

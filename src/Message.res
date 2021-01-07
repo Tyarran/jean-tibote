@@ -14,7 +14,7 @@ module ChannelType = {
   type t = Im | Channel
   let fromString = channelTypeString => {
     switch channelTypeString {
-    | "im" => Im
+    | Some("im") => Im
     | _ => Channel
     }
   }

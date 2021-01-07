@@ -224,7 +224,7 @@ let middleware = Middleware.from((_, req, res) => {
   switch body {
   | Some(json) =>
     switch Decoder.getPayload(json) {
-    | Invalid => Response.sendStatus(Response.StatusCode.Forbidden, res)
+    | Invalid => Response.sendStatus(Response.StatusCode.Accepted, res)
     | Challenge(challengeValue) => {
         Js.log("Challenge accepted !")
         Response.sendString(challengeValue, res)
@@ -232,6 +232,7 @@ let middleware = Middleware.from((_, req, res) => {
     | Event(payload) =>
       processEventPayload(payload)
       Response.sendStatus(Response.StatusCode.Ok, res)
+    | Unreadable(error) => Response.sendStatus(Response.StatusCode.NotImplemented, res)
     }
   | None => Response.sendString("Invalid payload", res)
   }
